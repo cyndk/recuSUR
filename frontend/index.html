@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ReçuSûr — Preuves d'achat pour commerçants</title>
+<meta name="description" content="Générez des tickets et factures fiables pour vos ventes, même sans internet.">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a7d3e">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="banniere-hors-ligne" class="banniere-hors-ligne cache">
+  📴 Mode hors-ligne — vos ventes seront synchronisées automatiquement dès le retour d'internet
+</div>
+
+<header class="entete" id="entete-app">
+  <div class="entete-gauche">
+    <span class="logo">🧾 ReçuSûr</span>
+  </div>
+  <nav class="entete-droite" id="nav-connecte" style="display:none;">
+    <button class="lien-nav" data-route="dashboard">Accueil</button>
+    <button class="lien-nav" data-route="historique">Historique</button>
+    <button class="lien-nav lien-deconnexion" id="btn-deconnexion">Déconnexion</button>
+  </nav>
+</header>
+
+<main id="app"></main>
+
+<!-- ===================== TEMPLATES ===================== -->
+
+<template id="tpl-login">
+  <div class="conteneur-centre">
+    <div class="carte carte-auth">
+      <h1 class="titre-principal">🧾 ReçuSûr</h1>
+      <p class="sous-titre">Des preuves d'achat fiables pour vos clients</p>
+
+      <div class="onglets">
+        <button class="onglet actif" data-onglet="connexion">Connexion</button>
+        <button class="onglet" data-onglet="inscription">Créer un compte</button>
+      </div>
+
+      <form id="form-connexion" class="formulaire">
+        <label>Email
+          <input type="email" name="email" required autocomplete="username">
+        </label>
+        <label>Mot de passe
+          <input type="password" name="password" required autocomplete="current-password">
+        </label>
+        <p class="message-erreur" id="erreur-connexion"></p>
+        <button type="submit" class="bouton bouton-principal bouton-grand">Se connecter</button>
+      </form>
+
+      <form id="form-inscription" class="formulaire cache">
+        <label>Nom de votre entreprise / boutique
+          <input type="text" name="nom_entreprise" required placeholder="Ex: Boutique Awa">
+        </label>
+        <label>Téléphone
+          <input type="tel" name="telephone" placeholder="+228 90 00 00 00">
+        </label>
+        <label>Pays
+          <select name="pays">
+            <option>Togo</option>
+            <option>Bénin</option>
+            <option>Côte d'Ivoire</option>
+            <option>Sénégal</option>
+            <option>Burkina Faso</option>
+            <option>Mali</option>
+            <option>Niger</option>
+            <option>Guinée</option>
+            <option>Autre</option>
+          </select>
+        </label>
+        <label>Email
+          <input type="email" name="email" required>
+        </label>
+        <label>Mot de passe (6 caractères minimum)
+          <input type="password" name="password" required minlength="6">
+        </label>
+        <p class="message-erreur" id="erreur-inscription"></p>
+        <button type="submit" class="bouton bouton-principal bouton-grand">Créer mon compte</button>
+      </form>
+    </div>
+  </div>
+</template>
+
+<template id="tpl-dashboard">
+  <div class="page">
+    <h1 class="titre-page">Bonjour, <span id="nom-commercant"></span> 👋</h1>
+
+    <div class="grille-stats">
+      <div class="carte carte-stat">
+        <span class="stat-libelle">Ventes aujourd'hui</span>
+        <span class="stat-valeur" id="stat-nombre-ventes">0</span>
+      </div>
+      <div class="carte carte-stat">
+        <span class="stat-libelle">Chiffre d'affaires du jour</span>
+        <span class="stat-valeur" id="stat-chiffre-affaires">0 FCFA</span>
+      </div>
+    </div>
+
+    <button class="bouton bouton-principal bouton-grand bouton-pleine-largeur" data-route="nouvelle-vente">
+      ➕ Nouvelle vente
+    </button>
+
+    <h2 class="titre-section">Dernières ventes</h2>
+    <div id="liste-dernieres-ventes" class="liste-ventes"></div>
+  </div>
+</template>
+
+<template id="tpl-nouvelle-vente">
+  <div class="page">
+    <button class="bouton-retour" data-route="dashboard">← Retour</button>
+    <h1 class="titre-page">Nouvelle vente</h1>
+
+    <form id="form-vente" class="formulaire">
+      <label>Nom du client *
+        <input type="text" name="client_nom" required placeholder="Ex: Kokou Mensah">
+      </label>
+      <label>Téléphone du client
+        <input type="tel" name="client_telephone" placeholder="+228 90 00 00 00">
+      </label>
+
+      <h2 class="titre-section">Produits</h2>
+      <div id="liste-produits"></div>
+      <button type="button" id="btn-ajouter-produit" class="bouton bouton-secondaire">+ Ajouter un produit</button>
+
+      <div class="carte carte-total">
+        <span>Total à payer</span>
+        <span id="total-vente">0 FCFA</span>
+      </div>
+
+      <label>Montant reçu (espèces)
+        <input type="number" name="montant_recu" min="0" step="1" placeholder="Ex: 5000">
+      </label>
+
+      <label>Moyen de paiement *
+        <select name="moyen_paiement" id="select-moyen-paiement" required>
+          <option value="">-- Choisir --</option>
+          <option value="Espèces">Espèces</option>
+          <option value="Orange Money">Orange Money</option>
+          <option value="Moov Money">Moov Money</option>
+          <option value="MTN Mobile Money">MTN Mobile Money</option>
+          <option value="Wave">Wave</option>
+          <option value="Free Money">Free Money</option>
+          <option value="Autre">Autre</option>
+        </select>
+      </label>
+
+      <label id="champ-numero-transaction" class="cache">Numéro de transaction *
+        <input type="text" name="numero_transaction" placeholder="Ex: MP240712.1830.A12345">
+      </label>
+
+      <p class="message-erreur" id="erreur-vente"></p>
+      <button type="submit" class="bouton bouton-principal bouton-grand bouton-pleine-largeur">
+        ✅ Valider la vente
+      </button>
+    </form>
+  </div>
+</template>
+
+<template id="tpl-ligne-produit">
+  <div class="ligne-produit">
+    <input type="text" class="produit-nom" placeholder="Nom du produit" required>
+    <input type="number" class="produit-quantite" placeholder="Qté" min="1" value="1" required>
+    <input type="number" class="produit-prix" placeholder="Prix unitaire" min="0" required>
+    <button type="button" class="btn-supprimer-produit" title="Supprimer">✕</button>
+  </div>
+</template>
+
+<template id="tpl-historique">
+  <div class="page">
+    <button class="bouton-retour" data-route="dashboard">← Retour</button>
+    <h1 class="titre-page">Historique des ventes</h1>
+
+    <div class="filtres">
+      <input type="date" id="filtre-date">
+      <input type="text" id="filtre-client" placeholder="Nom du client">
+      <input type="text" id="filtre-ticket" placeholder="N° de ticket">
+      <button id="btn-filtrer" class="bouton bouton-secondaire">Rechercher</button>
+    </div>
+
+    <div id="liste-historique" class="liste-ventes"></div>
+  </div>
+</template>
+
+<template id="tpl-ticket">
+  <div class="page">
+    <button class="bouton-retour" data-route="dashboard">← Retour à l'accueil</button>
+
+    <div class="ticket-conteneur">
+      <div id="ticket-imprimable" class="ticket">
+        <div class="ticket-entete">
+          <div class="ticket-logo">🏪</div>
+          <h2 id="ticket-entreprise"></h2>
+        </div>
+        <p class="ticket-ligne-centre" id="ticket-date"></p>
+        <hr>
+        <p><strong>N° Ticket :</strong> <span id="ticket-numero"></span></p>
+        <p><strong>Client :</strong> <span id="ticket-client"></span></p>
+        <hr>
+        <table class="ticket-produits" id="ticket-tableau-produits">
+          <thead>
+            <tr><th>Produit</th><th>Qté</th><th>P.U.</th><th>Total</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <hr>
+        <p class="ticket-total"><strong>TOTAL TTC :</strong> <span id="ticket-total"></span></p>
+        <p><strong>Paiement :</strong> <span id="ticket-paiement"></span></p>
+        <p id="ligne-transaction"><strong>N° Transaction :</strong> <span id="ticket-transaction"></span></p>
+        <hr>
+        <p class="ticket-mention-legale">
+          Ce ticket fait office de preuve d'achat. En cas de litige, ce document est recevable.
+        </p>
+        <div class="ticket-qrcode" id="ticket-qrcode"></div>
+        <p class="ticket-verification">Scannez pour vérifier l'authenticité</p>
+      </div>
+    </div>
+
+    <div class="actions-ticket">
+      <button id="btn-imprimer" class="bouton bouton-principal bouton-grand">🖨️ Imprimer</button>
+      <button id="btn-pdf" class="bouton bouton-secondaire bouton-grand">📄 Télécharger PDF</button>
+      <a id="btn-whatsapp" class="bouton bouton-whatsapp bouton-grand" target="_blank">💬 Partager WhatsApp</a>
+    </div>
+  </div>
+</template>
+
+<!-- Librairies externes (CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script src="js/db-offline.js"></script>
+<script src="js/api.js"></script>
+<script src="js/ticket.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,214 @@
+/* style.css — Design mobile-first, épuré, gros boutons, couleurs de confiance */
+
+:root {
+  --vert-principal: #0a7d3e;
+  --vert-fonce: #06592c;
+  --vert-clair: #e6f5ec;
+  --bleu-confiance: #0d6efd;
+  --blanc: #ffffff;
+  --gris-fond: #f4f6f5;
+  --gris-texte: #333333;
+  --gris-bordure: #dfe3e1;
+  --rouge-erreur: #c0392b;
+  --whatsapp: #25d366;
+  --rayon: 12px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  background: var(--gris-fond);
+  color: var(--gris-texte);
+  font-size: 16px;
+}
+
+.cache { display: none !important; }
+
+/* ---- Bannière hors-ligne ---- */
+.banniere-hors-ligne {
+  background: #fff3cd;
+  color: #7a5c00;
+  text-align: center;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ---- En-tête ---- */
+.entete {
+  background: var(--vert-principal);
+  color: var(--blanc);
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.logo { font-size: 20px; font-weight: 700; }
+.entete-droite { display: flex; gap: 8px; }
+.lien-nav {
+  background: rgba(255,255,255,0.15);
+  color: var(--blanc);
+  border: none;
+  padding: 10px 14px;
+  border-radius: var(--rayon);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.lien-deconnexion { background: rgba(0,0,0,0.2); }
+
+main { max-width: 640px; margin: 0 auto; padding: 16px; padding-bottom: 60px; }
+
+/* ---- Boutons ---- */
+.bouton {
+  border: none;
+  border-radius: var(--rayon);
+  padding: 14px 20px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.bouton-principal { background: var(--vert-principal); color: var(--blanc); }
+.bouton-principal:active { background: var(--vert-fonce); }
+.bouton-secondaire { background: var(--blanc); color: var(--vert-principal); border: 2px solid var(--vert-principal); }
+.bouton-grand { font-size: 18px; padding: 18px 22px; min-height: 56px; }
+.bouton-pleine-largeur { width: 100%; }
+.bouton-whatsapp { background: var(--whatsapp); color: var(--blanc); }
+.bouton-retour {
+  background: none; border: none; color: var(--vert-principal);
+  font-size: 16px; font-weight: 700; margin-bottom: 12px; cursor: pointer; padding: 8px 0;
+}
+
+/* ---- Cartes ---- */
+.carte {
+  background: var(--blanc);
+  border-radius: var(--rayon);
+  padding: 18px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  margin-bottom: 16px;
+}
+.carte-auth { max-width: 420px; margin: 40px auto; }
+.conteneur-centre { display: flex; align-items: flex-start; justify-content: center; min-height: 80vh; }
+.titre-principal { text-align: center; color: var(--vert-principal); margin-bottom: 4px; }
+.sous-titre { text-align: center; color: #666; margin-top: 0; margin-bottom: 20px; }
+
+/* ---- Onglets connexion/inscription ---- */
+.onglets { display: flex; margin-bottom: 16px; border-radius: var(--rayon); overflow: hidden; border: 2px solid var(--vert-principal); }
+.onglet { flex: 1; padding: 12px; border: none; background: var(--blanc); color: var(--vert-principal); font-weight: 700; cursor: pointer; }
+.onglet.actif { background: var(--vert-principal); color: var(--blanc); }
+
+/* ---- Formulaires ---- */
+.formulaire { display: flex; flex-direction: column; gap: 14px; }
+.formulaire label { font-weight: 600; font-size: 14px; display: flex; flex-direction: column; gap: 6px; }
+input, select, textarea {
+  padding: 14px;
+  font-size: 16px;
+  border: 2px solid var(--gris-bordure);
+  border-radius: var(--rayon);
+  font-family: inherit;
+  width: 100%;
+}
+input:focus, select:focus { outline: none; border-color: var(--vert-principal); }
+.message-erreur { color: var(--rouge-erreur); font-weight: 600; font-size: 14px; min-height: 0; }
+
+/* ---- Dashboard ---- */
+.titre-page { color: var(--vert-fonce); }
+.titre-section { font-size: 16px; color: var(--vert-fonce); margin-top: 24px; }
+.grille-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+.carte-stat { text-align: center; }
+.stat-libelle { display: block; font-size: 13px; color: #777; margin-bottom: 6px; }
+.stat-valeur { display: block; font-size: 26px; font-weight: 800; color: var(--vert-principal); }
+
+.liste-ventes { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.item-vente {
+  background: var(--blanc); border-radius: var(--rayon); padding: 14px;
+  display: flex; justify-content: space-between; align-items: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06); cursor: pointer;
+}
+.item-vente:active { background: var(--vert-clair); }
+.item-vente-info { display: flex; flex-direction: column; gap: 2px; }
+.item-vente-client { font-weight: 700; }
+.item-vente-meta { font-size: 13px; color: #777; }
+.item-vente-montant { font-weight: 800; color: var(--vert-principal); font-size: 16px; }
+.badge-hors-ligne { background: #fff3cd; color: #7a5c00; font-size: 11px; padding: 2px 8px; border-radius: 20px; margin-left: 6px; }
+
+/* ---- Nouvelle vente ---- */
+.ligne-produit {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  gap: 8px;
+  margin-bottom: 10px;
+  align-items: center;
+}
+.ligne-produit input { padding: 12px 10px; font-size: 14px; }
+.btn-supprimer-produit {
+  background: #fdecea; color: var(--rouge-erreur); border: none;
+  border-radius: 8px; width: 40px; height: 40px; font-size: 16px; cursor: pointer;
+}
+.carte-total {
+  display: flex; justify-content: space-between; align-items: center;
+  background: var(--vert-clair); font-size: 20px; font-weight: 800; color: var(--vert-fonce);
+}
+
+/* ---- Filtres historique ---- */
+.filtres { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.filtres input { flex: 1; min-width: 120px; }
+.filtres button { width: 100%; }
+
+/* ---- Ticket ---- */
+.ticket-conteneur { display: flex; justify-content: center; margin-bottom: 20px; }
+.ticket {
+  background: var(--blanc);
+  width: 320px;
+  max-width: 100%;
+  padding: 20px 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+}
+.ticket-entete { text-align: center; }
+.ticket-logo { font-size: 32px; }
+.ticket-entete h2 { margin: 4px 0; font-size: 16px; }
+.ticket-ligne-centre { text-align: center; margin: 4px 0; }
+.ticket hr { border: none; border-top: 1px dashed #999; margin: 10px 0; }
+.ticket-produits { width: 100%; border-collapse: collapse; font-size: 12px; }
+.ticket-produits th, .ticket-produits td { padding: 4px 2px; text-align: left; }
+.ticket-produits th:last-child, .ticket-produits td:last-child,
+.ticket-produits th:nth-child(2), .ticket-produits td:nth-child(2) { text-align: right; }
+.ticket-total { font-size: 15px; }
+.ticket-mention-legale { font-size: 11px; text-align: center; color: #555; font-style: italic; }
+.ticket-qrcode { display: flex; justify-content: center; margin: 12px 0; }
+.ticket-verification { text-align: center; font-size: 11px; color: #777; }
+
+.actions-ticket { display: flex; flex-direction: column; gap: 10px; max-width: 320px; margin: 0 auto; }
+
+/* ---- Impression (imprimante thermique 80mm) ---- */
+@media print {
+  header, .actions-ticket, .bouton-retour, .banniere-hors-ligne { display: none !important; }
+  body { background: var(--blanc); }
+  .ticket-conteneur { margin: 0; }
+  .ticket {
+    width: 80mm;
+    box-shadow: none;
+    padding: 4mm;
+  }
+  @page { margin: 0; size: 80mm auto; }
+}
+
+/* ---- Responsive tablette / desktop ---- */
+@media (min-width: 700px) {
+  .grille-stats { grid-template-columns: 1fr 1fr; }
+  .filtres { flex-wrap: nowrap; }
+  .filtres button { width: auto; }
+}

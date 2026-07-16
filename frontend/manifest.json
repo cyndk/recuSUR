@@ -1,0 +1,14 @@
+{
+  "name": "ReçuSûr - Preuves d'achat",
+  "short_name": "ReçuSûr",
+  "description": "Générez des tickets et factures fiables pour vos ventes",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0a7d3e",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icons/icone-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icone-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

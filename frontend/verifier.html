@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vérification de ticket — ReçuSûr</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="entete"><span class="logo">🧾 ReçuSûr</span></header>
+  <main>
+    <div class="page" id="resultat">
+      <p style="text-align:center;">Vérification en cours…</p>
+    </div>
+  </main>
+
+  <script>
+    async function verifier() {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id');
+      const zone = document.getElementById('resultat');
+
+      if (!id) {
+        zone.innerHTML = '<p class="message-erreur">Aucun identifiant de ticket fourni.</p>';
+        return;
+      }
+
+      try {
+        const reponse = await fetch(`/api/verifier/${id}`);
+        const donnees = await reponse.json();
+
+        if (donnees.valide) {
+          zone.innerHTML = `
+            <div class="carte" style="border:2px solid var(--vert-principal);">
+              <h2 style="color:var(--vert-principal);">✅ Ticket authentique</h2>
+              <p><strong>Entreprise :</strong> ${escapeHtml(donnees.entreprise)}</p>
+              <p><strong>N° Ticket :</strong> ${escapeHtml(donnees.numero_ticket)}</p>
+              <p><strong>Date :</strong> ${new Date(donnees.date_heure).toLocaleString('fr-FR')}</p>
+              <p><strong>Total :</strong> ${Number(donnees.total).toLocaleString('fr-FR')} FCFA</p>
+              <p><strong>Paiement :</strong> ${escapeHtml(donnees.moyen_paiement)}</p>
+            </div>`;
+        } else {
+          zone.innerHTML = `<div class="carte" style="border:2px solid var(--rouge-erreur);">
+            <h2 style="color:var(--rouge-erreur);">⚠️ Ticket introuvable</h2>
+            <p>${escapeHtml(donnees.message || '')}</p>
+          </div>`;
+        }
+      } catch (e) {
+        zone.innerHTML = '<p class="message-erreur">Impossible de vérifier ce ticket pour le moment (vérifiez votre connexion internet).</p>';
+      }
+    }
+
+    function escapeHtml(texte) {
+      const div = document.createElement('div');
+      div.textContent = texte;
+      return div.innerHTML;
+    }
+
+    verifier();
+  </script>
+</body>
+</html>
