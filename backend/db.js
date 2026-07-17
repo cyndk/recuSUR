@@ -20,6 +20,24 @@ async function initialiserSchema() {
       password_hash TEXT NOT NULL,
       telephone TEXT,
       pays TEXT DEFAULT 'Togo',
+      actif INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+
+  // Migration : ajoute la colonne "actif" si la table existait déjà avant cette fonctionnalité
+  // (échoue silencieusement si la colonne existe déjà, ce qui est normal sur une base neuve).
+  try {
+    await db.execute(`ALTER TABLE commercants ADD COLUMN actif INTEGER NOT NULL DEFAULT 1`);
+  } catch (e) {
+    // "duplicate column name" attendu si la colonne existe déjà — on l'ignore
+  }
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS admins (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
       created_at TEXT DEFAULT (datetime('now'))
     );
   `);

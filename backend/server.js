@@ -8,6 +8,8 @@ const { initialiserSchema } = require('./db');
 const authRoutes = require('./routes/auth');
 const ventesRoutes = require('./routes/ventes');
 const publicRoutes = require('./routes/public');
+const adminAuthRoutes = require('./routes/adminAuth');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,6 +23,8 @@ app.use(express.static(path.join(__dirname, '..', 'frontend')));
 app.use('/api/auth', authRoutes);
 app.use('/api/ventes', ventesRoutes);
 app.use('/api/verifier', publicRoutes);
+app.use('/api/admin/auth', adminAuthRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/api/sante', (req, res) => res.json({ statut: 'ok' }));
 

@@ -311,6 +311,12 @@ const App = (() => {
 
   // ---------------- Initialisation ----------------
   function demarrer() {
+    // Boutons de navigation de l'en-tête (Accueil, Historique) : présents en permanence
+    // dans la page (en dehors de la zone remplacée par les templates), donc branchés une seule fois ici.
+    navConnecte.querySelectorAll('[data-route]').forEach(bouton => {
+      bouton.addEventListener('click', () => naviguer(bouton.dataset.route));
+    });
+
     window.addEventListener('hashchange', rendre);
     gererStatutConnexion();
     if (!window.location.hash) window.location.hash = API.token() ? 'dashboard' : 'login';

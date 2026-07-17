@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Administration — ReçuSûr</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  table { width: 100%; border-collapse: collapse; background: var(--blanc); border-radius: var(--rayon); overflow: hidden; }
+  th, td { padding: 10px; text-align: left; font-size: 14px; border-bottom: 1px solid var(--gris-bordure); }
+  th { background: var(--vert-clair); color: var(--vert-fonce); }
+  .statut-actif { color: var(--vert-principal); font-weight: 700; }
+  .statut-inactif { color: var(--rouge-erreur); font-weight: 700; }
+  .actions-ligne { display: flex; gap: 6px; flex-wrap: wrap; }
+  .actions-ligne button { padding: 8px 10px; font-size: 12px; border-radius: 8px; border: none; cursor: pointer; font-weight: 700; }
+  .btn-desactiver { background: #fdecea; color: var(--rouge-erreur); }
+  .btn-activer { background: var(--vert-clair); color: var(--vert-principal); }
+  .btn-reinit { background: #e8f0fe; color: var(--bleu-confiance); }
+  .tableau-scroll { overflow-x: auto; }
+</style>
+</head>
+<body>
+
+<header class="entete">
+  <span class="logo">🛡️ ReçuSûr — Administration</span>
+  <button class="lien-nav cache" id="btn-deconnexion-admin">Déconnexion</button>
+</header>
+
+<main id="app-admin" style="max-width: 900px; margin: 0 auto; padding: 16px;">
+
+  <div class="carte carte-auth" id="bloc-login" style="max-width:420px;margin:40px auto;">
+    <h1 class="titre-principal">🛡️ Administration</h1>
+    <p class="sous-titre">Accès réservé au super-administrateur</p>
+    <form id="form-login-admin" class="formulaire">
+      <label>Email
+        <input type="email" name="email" required>
+      </label>
+      <label>Mot de passe
+        <input type="password" name="password" required>
+      </label>
+      <p class="message-erreur" id="erreur-login-admin"></p>
+      <button type="submit" class="bouton bouton-principal bouton-grand">Se connecter</button>
+    </form>
+  </div>
+
+  <div id="bloc-admin" class="cache">
+    <h1 class="titre-page">Comptes commerçants</h1>
+    <p id="chargement-liste">Chargement…</p>
+    <div class="tableau-scroll">
+      <table id="tableau-commercants" class="cache">
+        <thead>
+          <tr>
+            <th>Entreprise</th>
+            <th>Email</th>
+            <th>Téléphone</th>
+            <th>Statut</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="corps-tableau"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+(() => {
+  const BASE_URL = window.location.origin + '/api/admin';
+  const blocLogin = document.getElementById('bloc-login');
+  const blocAdmin = document.getElementById('bloc-admin');
+  const btnDeconnexion = document.getElementById('btn-deconnexion-admin');
+
+  function token() { return localStorage.getItem('admin_token'); }
+
+  async function requete(chemin, options = {}) {
+    const entetes = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+    if (token()) entetes.Authorization = `Bearer ${token()}`;
+    const reponse = await fetch(BASE_URL + chemin, { ...options, headers: entetes });
+    const donnees = await reponse.json().catch(() => ({}));
+    if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur inconnue.');
+    return donnees;
+  }
+
+  function afficherEcran() {
+    const connecte = !!token();
+    blocLogin.classList.toggle('cache', connecte);
+    blocAdmin.classList.toggle('cache', !connecte);
+    btnDeconnexion.classList.toggle('cache', !connecte);
+    if (connecte) chargerCommercants();
+  }
+
+  document.getElementById('form-login-admin').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const erreurEl = document.getElementById('erreur-login-admin');
+    erreurEl.textContent = '';
+    const donnees = Object.fromEntries(new FormData(e.target));
+    try {
+      const reponse = await fetch(window.location.origin + '/api/admin/auth/login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(donnees)
+      });
+      const resultat = await reponse.json();
+      if (!reponse.ok) throw new Error(resultat.erreur || 'Connexion impossible.');
+      localStorage.setItem('admin_token', resultat.token);
+      afficherEcran();
+    } catch (err) {
+      erreurEl.textContent = err.message;
+    }
+  });
+
+  btnDeconnexion.addEventListener('click', () => {
+    localStorage.removeItem('admin_token');
+    afficherEcran();
+  });
+
+  async function chargerCommercants() {
+    const chargement = document.getElementById('chargement-liste');
+    const tableau = document.getElementById('tableau-commercants');
+    const corps = document.getElementById('corps-tableau');
+    chargement.textContent = 'Chargement…';
+    try {
+      const { commercants } = await requete('/commercants');
+      chargement.classList.add('cache');
+      tableau.classList.remove('cache');
+      corps.innerHTML = '';
+      commercants.forEach(c => {
+        const ligne = document.createElement('tr');
+        ligne.innerHTML = `
+          <td>${echapper(c.nom_entreprise)}</td>
+          <td>${echapper(c.email)}</td>
+          <td>${echapper(c.telephone || '—')}</td>
+          <td class="${c.actif ? 'statut-actif' : 'statut-inactif'}">${c.actif ? 'Actif' : 'Désactivé'}</td>
+          <td>
+            <div class="actions-ligne">
+              ${c.actif
+                ? `<button class="btn-desactiver" data-action="desactiver" data-id="${c.id}">Désactiver</button>`
+                : `<button class="btn-activer" data-action="activer" data-id="${c.id}">Réactiver</button>`}
+              <button class="btn-reinit" data-action="reinit" data-id="${c.id}" data-nom="${echapper(c.nom_entreprise)}">Réinitialiser mot de passe</button>
+            </div>
+          </td>
+        `;
+        corps.appendChild(ligne);
+      });
+    } catch (err) {
+      chargement.textContent = "Erreur lors du chargement : " + err.message;
+    }
+  }
+
+  document.getElementById('corps-tableau').addEventListener('click', async (e) => {
+    const bouton = e.target.closest('button[data-action]');
+    if (!bouton) return;
+    const { action, id, nom } = bouton.dataset;
+
+    try {
+      if (action === 'desactiver') {
+        if (!confirm(`Désactiver l'accès de "${nom || 'ce commerçant'}" ?`)) return;
+        await requete(`/commercants/${id}/desactiver`, { method: 'POST' });
+      } else if (action === 'activer') {
+        await requete(`/commercants/${id}/activer`, { method: 'POST' });
+      } else if (action === 'reinit') {
+        if (!confirm(`Générer un nouveau mot de passe pour "${nom || 'ce commerçant'}" ?`)) return;
+        const resultat = await requete(`/commercants/${id}/reinitialiser-mot-de-passe`, { method: 'POST', body: JSON.stringify({}) });
+        alert(`Nouveau mot de passe pour ${nom} :\n\n${resultat.nouveau_mot_de_passe}\n\nCommuniquez-le au commerçant maintenant : il ne sera plus jamais affiché.`);
+      }
+      chargerCommercants();
+    } catch (err) {
+      alert('Erreur : ' + err.message);
+    }
+  });
+
+  function echapper(texte) {
+    const div = document.createElement('div');
+    div.textContent = texte;
+    return div.innerHTML;
+  }
+
+  afficherEcran();
+})();
+</script>
+</body>
+</html>

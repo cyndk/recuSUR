@@ -36,7 +36,7 @@ router.post('/register', async (req, res) => {
     });
 
     const commercant = { id: Number(resultat.lastInsertRowid), nom_entreprise, email: emailNormalise };
-    const token = jwt.sign({ id: commercant.id }, JWT_SECRET, { expiresIn: '30d' });
+    const token = jwt.sign({ id: commercant.id, role: 'commercant' }, JWT_SECRET, { expiresIn: '30d' });
 
     res.status(201).json({ token, commercant });
   } catch (e) {
@@ -62,8 +62,11 @@ router.post('/login', async (req, res) => {
     if (!commercant || !bcrypt.compareSync(password, commercant.password_hash)) {
       return res.status(401).json({ erreur: "Email ou mot de passe incorrect." });
     }
+    if (Number(commercant.actif) !== 1) {
+      return res.status(403).json({ erreur: "Votre accès a été désactivé. Contactez votre administrateur." });
+    }
 
-    const token = jwt.sign({ id: Number(commercant.id) }, JWT_SECRET, { expiresIn: '30d' });
+    const token = jwt.sign({ id: Number(commercant.id), role: 'commercant' }, JWT_SECRET, { expiresIn: '30d' });
     res.json({
       token,
       commercant: {
