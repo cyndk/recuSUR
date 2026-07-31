@@ -3,8 +3,11 @@
 const App = (() => {
   const zoneApp = document.getElementById('app');
   const navConnecte = document.getElementById('nav-connecte');
+  const fabNouvelleVente = document.getElementById('fab-nouvelle-vente');
+  const toastConteneur = document.getElementById('toast-conteneur');
   let commercant = JSON.parse(localStorage.getItem('commercant') || 'null');
   let derniereVenteAffichee = null;
+  let derniereVenteVientDetreCreee = false;
 
   // ---------------- Routage ----------------
   function naviguer(route) {
@@ -18,7 +21,12 @@ const App = (() => {
 
   async function rendre() {
     const route = routeActuelle();
-    navConnecte.style.display = (API.token() && route !== 'login') ? 'flex' : 'none';
+    const connecte = API.token() && route !== 'login';
+    navConnecte.style.display = connecte ? 'flex' : 'none';
+    document.getElementById('btn-theme-deconnecte').style.display = connecte ? 'none' : 'flex';
+
+    // Le bouton flottant "Nouvelle vente" n'est utile que sur Accueil et Historique
+    fabNouvelleVente.classList.toggle('cache', !(connecte && (route === 'dashboard' || route === 'historique')));
 
     if (!API.token() && route !== 'login') {
       zoneApp.innerHTML = '';
@@ -50,6 +58,8 @@ const App = (() => {
         if (derniereVenteAffichee) {
           Ticket.afficher(derniereVenteAffichee, commercant);
           brancherActionsTicket(derniereVenteAffichee);
+          document.getElementById('confirmation-vente').classList.toggle('cache', !derniereVenteVientDetreCreee);
+          derniereVenteVientDetreCreee = false;
         } else {
           naviguer('dashboard');
         }
@@ -67,6 +77,37 @@ const App = (() => {
     zoneApp.querySelectorAll('[data-route]').forEach(bouton => {
       bouton.addEventListener('click', () => naviguer(bouton.dataset.route));
     });
+  }
+
+  // ---------------- Thème (clair / sombre) ----------------
+  function appliquerTheme(theme) {
+    if (theme === 'sombre') {
+      document.documentElement.setAttribute('data-theme', 'sombre');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+    localStorage.setItem('theme', theme);
+    document.querySelectorAll('.btn-theme').forEach(b => b.textContent = theme === 'sombre' ? '☀️' : '🌙');
+  }
+
+  function brancherBoutonsTheme() {
+    const themeActuel = localStorage.getItem('theme') === 'sombre' ? 'sombre' : 'clair';
+    appliquerTheme(themeActuel);
+    document.querySelectorAll('.btn-theme').forEach(bouton => {
+      bouton.addEventListener('click', () => {
+        const nouveauTheme = document.documentElement.getAttribute('data-theme') === 'sombre' ? 'clair' : 'sombre';
+        appliquerTheme(nouveauTheme);
+      });
+    });
+  }
+
+  // ---------------- Toast (confirmation animée) ----------------
+  function afficherToast(message, icone = '✅') {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerHTML = `<span class="toast-icone">${icone}</span><span>${escapeHtml(message)}</span>`;
+    toastConteneur.appendChild(toast);
+    setTimeout(() => toast.remove(), 2500);
   }
 
   // ---------------- Authentification ----------------
@@ -109,19 +150,24 @@ const App = (() => {
       erreurEl.textContent = '';
       try {
         const resultat = await API.inscription(donnees);
-        connecter(resultat);
+        connecter(resultat, true);
       } catch (err) {
         erreurEl.textContent = err.message;
       }
     });
   }
 
-  function connecter({ token, commercant: c }) {
+  function connecter({ token, commercant: c }, estNouveauCompte = false) {
     localStorage.setItem('token', token);
     localStorage.setItem('commercant', JSON.stringify(c));
     commercant = c;
     naviguer('dashboard');
     rendre();
+
+    const cleTutoriel = `tutoriel_vu_${c.id}`;
+    if (estNouveauCompte || !localStorage.getItem(cleTutoriel)) {
+      setTimeout(() => afficherTutoriel(cleTutoriel), 400);
+    }
   }
 
   document.getElementById('btn-deconnexion').addEventListener('click', () => {
@@ -131,6 +177,54 @@ const App = (() => {
     naviguer('login');
   });
 
+  // ---------------- Tutoriel de bienvenue (3 étapes) ----------------
+  const etapesTutoriel = [
+    { icone: '➕', titre: 'Enregistrez une vente', texte: "Appuyez sur « Nouvelle vente », ajoutez les produits achetés et choisissez le moyen de paiement du client." },
+    { icone: '🧾', titre: 'Un ticket fiable, instantané', texte: "Un ticket avec QR code est généré aussitôt. Partagez-le par WhatsApp, imprimez-le, ou téléchargez-le en PDF." },
+    { icone: '📴', titre: 'Même sans connexion', texte: "Pas de réseau ? Aucun problème : la vente est enregistrée sur votre téléphone et se synchronise automatiquement au retour d'internet." }
+  ];
+
+  function afficherTutoriel(cleTutoriel) {
+    const tpl = document.getElementById('tpl-tutoriel');
+    const noeud = tpl.content.cloneNode(true);
+    document.body.appendChild(noeud);
+
+    const fond = document.getElementById('tutoriel-fond');
+    const icone = document.getElementById('tutoriel-icone');
+    const titre = document.getElementById('tutoriel-titre');
+    const texte = document.getElementById('tutoriel-texte');
+    const points = fond.querySelectorAll('.tutoriel-point');
+    const btnSuivant = document.getElementById('tutoriel-suivant');
+    const btnPasser = document.getElementById('tutoriel-passer');
+
+    let etape = 0;
+    function afficherEtape() {
+      const e = etapesTutoriel[etape];
+      icone.textContent = e.icone;
+      titre.textContent = e.titre;
+      texte.textContent = e.texte;
+      points.forEach((p, i) => p.classList.toggle('actif', i === etape));
+      btnSuivant.textContent = etape === etapesTutoriel.length - 1 ? 'Terminer' : 'Suivant';
+    }
+
+    function fermer() {
+      localStorage.setItem(cleTutoriel, '1');
+      fond.remove();
+    }
+
+    btnSuivant.addEventListener('click', () => {
+      if (etape < etapesTutoriel.length - 1) {
+        etape++;
+        afficherEtape();
+      } else {
+        fermer();
+      }
+    });
+    btnPasser.addEventListener('click', fermer);
+
+    afficherEtape();
+  }
+
   // ---------------- Dashboard ----------------
   async function chargerDashboard() {
     document.getElementById('nom-commercant').textContent = commercant ? commercant.nom_entreprise : '';
@@ -138,6 +232,7 @@ const App = (() => {
       const resume = await API.resumeDashboard();
       document.getElementById('stat-nombre-ventes').textContent = resume.nombre_ventes_jour;
       document.getElementById('stat-chiffre-affaires').textContent = Ticket.formaterMontant(resume.chiffre_affaires_jour);
+      document.getElementById('stat-total-cumule').textContent = Ticket.formaterMontant(resume.chiffre_affaires_total);
       afficherListeVentes('liste-dernieres-ventes', resume.dernieres_ventes);
     } catch (e) {
       // Hors-ligne : on affiche les ventes en cache local + celles en attente
@@ -145,6 +240,7 @@ const App = (() => {
       const enAttente = await DBOffline.listerVentesEnAttente();
       document.getElementById('stat-nombre-ventes').textContent = '—';
       document.getElementById('stat-chiffre-affaires').textContent = '—';
+      document.getElementById('stat-total-cumule').textContent = '—';
       const combinees = [...enAttente.map(v => ({ ...v, numero_ticket: 'EN ATTENTE', date_heure: new Date().toISOString() })), ...cache]
         .slice(0, 5);
       afficherListeVentes('liste-dernieres-ventes', combinees);
@@ -171,6 +267,7 @@ const App = (() => {
       `;
       item.addEventListener('click', () => {
         derniereVenteAffichee = v;
+        derniereVenteVientDetreCreee = false;
         naviguer('ticket');
       });
       conteneur.appendChild(item);
@@ -251,8 +348,11 @@ const App = (() => {
       try {
         const resultat = await API.creerVente(payload);
         derniereVenteAffichee = resultat.vente;
+        derniereVenteVientDetreCreee = true;
         if (resultat.horsLigne) {
-          alert("Pas de connexion internet : la vente a été enregistrée localement et sera synchronisée automatiquement.");
+          afficherToast("Enregistrée hors-ligne — sera synchronisée automatiquement", '📴');
+        } else {
+          afficherToast("Vente enregistrée avec succès !");
         }
         naviguer('ticket');
       } catch (err) {
@@ -316,7 +416,9 @@ const App = (() => {
     navConnecte.querySelectorAll('[data-route]').forEach(bouton => {
       bouton.addEventListener('click', () => naviguer(bouton.dataset.route));
     });
+    fabNouvelleVente.addEventListener('click', () => naviguer(fabNouvelleVente.dataset.route));
 
+    brancherBoutonsTheme();
     window.addEventListener('hashchange', rendre);
     gererStatutConnexion();
     if (!window.location.hash) window.location.hash = API.token() ? 'dashboard' : 'login';

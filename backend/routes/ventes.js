@@ -126,7 +126,7 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/ventes/dashboard/resume — Statistiques du jour
+// GET /api/ventes/dashboard/resume — Statistiques du jour + total cumulé depuis le début
 router.get('/dashboard/resume', requireAuth, async (req, res) => {
   try {
     const aujourdHui = new Date().toISOString().slice(0, 10);
@@ -137,6 +137,12 @@ router.get('/dashboard/resume', requireAuth, async (req, res) => {
       args: [req.commercantId, aujourdHui]
     });
 
+    const statsTotales = await db.execute({
+      sql: `SELECT COUNT(*) AS nombre_ventes, COALESCE(SUM(total), 0) AS chiffre_affaires
+            FROM ventes WHERE commercant_id = ?`,
+      args: [req.commercantId]
+    });
+
     const dernieresVentes = await db.execute({
       sql: 'SELECT * FROM ventes WHERE commercant_id = ? ORDER BY date_heure DESC LIMIT 5',
       args: [req.commercantId]
@@ -145,6 +151,8 @@ router.get('/dashboard/resume', requireAuth, async (req, res) => {
     res.json({
       nombre_ventes_jour: Number(stats.rows[0].nombre_ventes),
       chiffre_affaires_jour: Number(stats.rows[0].chiffre_affaires),
+      nombre_ventes_total: Number(statsTotales.rows[0].nombre_ventes),
+      chiffre_affaires_total: Number(statsTotales.rows[0].chiffre_affaires),
       dernieres_ventes: dernieresVentes.rows.map(formatVente)
     });
   } catch (e) {

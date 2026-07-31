@@ -8,6 +8,13 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0a7d3e">
 <link rel="stylesheet" href="css/style.css">
+<script>
+  // Applique le thème sauvegardé avant l'affichage, pour éviter un flash de couleur
+  (function() {
+    const theme = localStorage.getItem('theme');
+    if (theme === 'sombre') document.documentElement.setAttribute('data-theme', 'sombre');
+  })();
+</script>
 </head>
 <body>
 
@@ -22,20 +29,40 @@
   <nav class="entete-droite" id="nav-connecte" style="display:none;">
     <button class="lien-nav" data-route="dashboard">Accueil</button>
     <button class="lien-nav" data-route="historique">Historique</button>
+    <button class="btn-theme" id="btn-theme" title="Changer le thème">🌙</button>
     <button class="lien-nav lien-deconnexion" id="btn-deconnexion">Déconnexion</button>
   </nav>
+  <button class="btn-theme" id="btn-theme-deconnecte" title="Changer le thème" style="display:none;">🌙</button>
 </header>
 
 <main id="app"></main>
 
+<button class="bouton-flottant cache" id="fab-nouvelle-vente" data-route="nouvelle-vente">➕ Nouvelle vente</button>
+<div class="toast-conteneur" id="toast-conteneur"></div>
+
 <!-- ===================== TEMPLATES ===================== -->
 
 <template id="tpl-login">
+  <div class="hero-connexion">
+    <h1 class="hero-titre">🧾 ReçuSûr</h1>
+    <p class="hero-sous-titre">Générez des tickets et factures fiables pour vos clients — même sans internet.</p>
+    <div class="hero-fonctionnalites">
+      <div class="hero-item">
+        <span class="hero-icone">📱</span>
+        <div><strong>Simple sur téléphone</strong><p>Gros boutons, écrans clairs, pensé pour un usage rapide en boutique.</p></div>
+      </div>
+      <div class="hero-item">
+        <span class="hero-icone">📴</span>
+        <div><strong>Fonctionne hors-ligne</strong><p>Enregistrez vos ventes même sans connexion : tout se synchronise après.</p></div>
+      </div>
+      <div class="hero-item">
+        <span class="hero-icone">✅</span>
+        <div><strong>Preuve d'achat fiable</strong><p>Ticket avec QR code vérifiable, pour rassurer vos clients à 100%.</p></div>
+      </div>
+    </div>
+  </div>
   <div class="conteneur-centre">
     <div class="carte carte-auth">
-      <h1 class="titre-principal">🧾 ReçuSûr</h1>
-      <p class="sous-titre">Des preuves d'achat fiables pour vos clients</p>
-
       <div class="onglets">
         <button class="onglet actif" data-onglet="connexion">Connexion</button>
         <button class="onglet" data-onglet="inscription">Créer un compte</button>
@@ -97,6 +124,10 @@
       <div class="carte carte-stat">
         <span class="stat-libelle">Chiffre d'affaires du jour</span>
         <span class="stat-valeur" id="stat-chiffre-affaires">0 FCFA</span>
+      </div>
+      <div class="carte carte-stat">
+        <span class="stat-libelle">Total depuis le début</span>
+        <span class="stat-valeur" id="stat-total-cumule">0 FCFA</span>
       </div>
     </div>
 
@@ -189,6 +220,11 @@
   <div class="page">
     <button class="bouton-retour" data-route="dashboard">← Retour à l'accueil</button>
 
+    <div class="confirmation-vente cache" id="confirmation-vente">
+      <span class="confirmation-icone-animee">✅</span>
+      <span>Vente enregistrée avec succès !</span>
+    </div>
+
     <div class="ticket-conteneur">
       <div id="ticket-imprimable" class="ticket">
         <div class="ticket-entete">
@@ -223,6 +259,27 @@
       <button id="btn-imprimer" class="bouton bouton-principal bouton-grand">🖨️ Imprimer</button>
       <button id="btn-pdf" class="bouton bouton-secondaire bouton-grand">📄 Télécharger PDF</button>
       <a id="btn-whatsapp" class="bouton bouton-whatsapp bouton-grand" target="_blank">💬 Partager WhatsApp</a>
+    </div>
+  </div>
+</template>
+
+<template id="tpl-tutoriel">
+  <div class="tutoriel-fond" id="tutoriel-fond">
+    <div class="tutoriel-carte">
+      <div class="tutoriel-icone" id="tutoriel-icone">➕</div>
+      <h2 class="tutoriel-titre" id="tutoriel-titre">Enregistrez une vente</h2>
+      <p class="tutoriel-texte" id="tutoriel-texte">
+        Appuyez sur "Nouvelle vente", ajoutez les produits achetés et le moyen de paiement.
+      </p>
+      <div class="tutoriel-points">
+        <span class="tutoriel-point actif" data-etape="0"></span>
+        <span class="tutoriel-point" data-etape="1"></span>
+        <span class="tutoriel-point" data-etape="2"></span>
+      </div>
+      <div class="tutoriel-actions">
+        <button class="tutoriel-passer" id="tutoriel-passer">Passer</button>
+        <button class="bouton bouton-principal" id="tutoriel-suivant">Suivant</button>
+      </div>
     </div>
   </div>
 </template>
