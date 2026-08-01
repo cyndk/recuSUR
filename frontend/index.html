@@ -6,7 +6,7 @@
 <title>ReçuSûr — Preuves d'achat pour commerçants</title>
 <meta name="description" content="Générez des tickets et factures fiables pour vos ventes, même sans internet.">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0a7d3e">
+<meta name="theme-color" content="#1a7a3a">
 <link rel="stylesheet" href="css/style.css">
 <script>
   // Applique le thème sauvegardé avant l'affichage, pour éviter un flash de couleur
@@ -24,7 +24,14 @@
 
 <header class="entete" id="entete-app">
   <div class="entete-gauche">
-    <span class="logo">🧾 ReçuSûr</span>
+    <span class="logo">
+      <svg class="logo-icone" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 3h16v17l-2.5-1.5L15 20l-2.5-1.5L10 20l-2.5-1.5L5 20l-1-1V3z" fill="#ffffff" fill-opacity="0.95"/>
+        <circle cx="17" cy="17" r="6" fill="#f59e0b"/>
+        <path d="M14.3 17.2l1.7 1.7 3.2-3.4" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      ReçuSûr
+    </span>
   </div>
   <nav class="entete-droite" id="nav-connecte" style="display:none;">
     <button class="lien-nav" data-route="dashboard">Accueil</button>
@@ -44,8 +51,12 @@
 
 <template id="tpl-login">
   <div class="hero-connexion">
+    <div class="hero-illustration">🧑🏾‍💼🤝🧑🏽‍🦱</div>
     <h1 class="hero-titre">🧾 ReçuSûr</h1>
-    <p class="hero-sous-titre">Générez des tickets et factures fiables pour vos clients — même sans internet.</p>
+    <p class="hero-sous-titre">Protégez vos ventes et vos clients en un clic</p>
+
+    <div class="hero-compteur" id="hero-compteur">🔒 Déjà des milliers de tickets certifiés générés</div>
+
     <div class="hero-fonctionnalites">
       <div class="hero-item">
         <span class="hero-icone">📱</span>
@@ -60,7 +71,17 @@
         <div><strong>Preuve d'achat fiable</strong><p>Ticket avec QR code vérifiable, pour rassurer vos clients à 100%.</p></div>
       </div>
     </div>
+
+    <div class="hero-temoignage">
+      "Grâce à ReçuSûr, mes clients me font plus confiance. Je n'ai plus de discussions sur ce qui a été payé ou non."
+      <strong>— Awa, commerçante à Lomé</strong>
+    </div>
+
+    <button class="bouton bouton-principal bouton-grand hero-cta" id="btn-commencer-gratuitement">
+      🚀 Commencer gratuitement
+    </button>
   </div>
+
   <div class="conteneur-centre">
     <div class="carte carte-auth">
       <div class="onglets">
@@ -77,6 +98,7 @@
         </label>
         <p class="message-erreur" id="erreur-connexion"></p>
         <button type="submit" class="bouton bouton-principal bouton-grand">Se connecter</button>
+        <button type="button" class="lien-secondaire" id="btn-mdp-oublie">Mot de passe oublié ?</button>
       </form>
 
       <form id="form-inscription" class="formulaire cache">
@@ -106,8 +128,13 @@
           <input type="password" name="password" required minlength="6">
         </label>
         <p class="message-erreur" id="erreur-inscription"></p>
-        <button type="submit" class="bouton bouton-principal bouton-grand">Créer mon compte</button>
+        <button type="submit" class="bouton bouton-secondaire bouton-grand">Créer mon compte</button>
       </form>
+
+      <div class="selecteur-langue">
+        <button class="actif" data-langue="fr">Français</button>
+        <button data-langue="en" id="btn-langue-en">English</button>
+      </div>
     </div>
   </div>
 </template>
@@ -115,28 +142,47 @@
 <template id="tpl-dashboard">
   <div class="page">
     <h1 class="titre-page">Bonjour, <span id="nom-commercant"></span> 👋</h1>
+    <p class="sous-titre" style="margin-top:-8px;">Prêt(e) pour les ventes d'aujourd'hui ?</p>
 
     <div class="grille-stats">
       <div class="carte carte-stat">
-        <span class="stat-libelle">Ventes aujourd'hui</span>
-        <span class="stat-valeur" id="stat-nombre-ventes">0</span>
+        <span class="stat-icone">📊</span>
+        <span class="stat-libelle">Ventes du jour</span>
+        <span class="stat-valeur stat-bleu" id="stat-nombre-ventes">0</span>
       </div>
       <div class="carte carte-stat">
-        <span class="stat-libelle">Chiffre d'affaires du jour</span>
-        <span class="stat-valeur" id="stat-chiffre-affaires">0 FCFA</span>
+        <span class="stat-icone">💰</span>
+        <span class="stat-libelle">CA du jour</span>
+        <span class="stat-valeur stat-vert" id="stat-chiffre-affaires">0 FCFA</span>
       </div>
       <div class="carte carte-stat">
-        <span class="stat-libelle">Total depuis le début</span>
-        <span class="stat-valeur" id="stat-total-cumule">0 FCFA</span>
+        <span class="stat-icone">📈</span>
+        <span class="stat-libelle">Ventes totales</span>
+        <span class="stat-valeur stat-violet" id="stat-ventes-totales">0</span>
+      </div>
+      <div class="carte carte-stat">
+        <span class="stat-icone">🏦</span>
+        <span class="stat-libelle">CA total</span>
+        <span class="stat-valeur stat-orange" id="stat-total-cumule">0 FCFA</span>
       </div>
     </div>
 
-    <button class="bouton bouton-principal bouton-grand bouton-pleine-largeur" data-route="nouvelle-vente">
+    <div class="carte graphique-carte">
+      <p class="graphique-titre">Ventes des 7 derniers jours</p>
+      <div class="graphique-barres" id="graphique-barres"></div>
+    </div>
+
+    <button class="bouton bouton-principal bouton-grand bouton-pleine-largeur" data-route="nouvelle-vente" style="margin-top:16px;">
       ➕ Nouvelle vente
     </button>
 
     <h2 class="titre-section">Dernières ventes</h2>
     <div id="liste-dernieres-ventes" class="liste-ventes"></div>
+
+    <p class="rappel-valeur">💡 Chaque ticket généré est une preuve fiable pour vos clients.</p>
+    <p class="compteur-certifies" id="compteur-certifies">🔒 0 tickets certifiés générés</p>
+
+    <button class="bouton bouton-partage-app" id="btn-partager-app">📤 Partager ReçuSûr</button>
   </div>
 </template>
 
@@ -205,6 +251,13 @@
     <button class="bouton-retour" data-route="dashboard">← Retour</button>
     <h1 class="titre-page">Historique des ventes</h1>
 
+    <div class="filtres-rapides" id="filtres-rapides">
+      <button class="filtre-rapide" data-periode="aujourdhui">Aujourd'hui</button>
+      <button class="filtre-rapide" data-periode="semaine">Cette semaine</button>
+      <button class="filtre-rapide" data-periode="mois">Ce mois</button>
+      <button class="filtre-rapide" data-periode="tout">Tout</button>
+    </div>
+
     <div class="filtres">
       <input type="date" id="filtre-date">
       <input type="text" id="filtre-client" placeholder="Nom du client">
@@ -213,6 +266,8 @@
     </div>
 
     <div id="liste-historique" class="liste-ventes"></div>
+
+    <button class="bouton-export" id="btn-exporter">⬇️ Exporter en CSV (comptabilité)</button>
   </div>
 </template>
 
@@ -250,15 +305,19 @@
         <p class="ticket-mention-legale">
           Ce ticket fait office de preuve d'achat. En cas de litige, ce document est recevable.
         </p>
+        <p class="ticket-message-client">Merci pour votre confiance. Ce ticket est votre preuve d'achat. 🙏</p>
         <div class="ticket-qrcode" id="ticket-qrcode"></div>
-        <p class="ticket-verification">Scannez pour vérifier l'authenticité</p>
+        <p class="ticket-verification">Scannez ce code pour vérifier l'authenticité de votre achat</p>
+        <div style="text-align:center;">
+          <span class="badge-certifie">✅ Vente certifiée ReçuSûr</span>
+        </div>
       </div>
     </div>
 
     <div class="actions-ticket">
       <button id="btn-imprimer" class="bouton bouton-principal bouton-grand">🖨️ Imprimer</button>
       <button id="btn-pdf" class="bouton bouton-secondaire bouton-grand">📄 Télécharger PDF</button>
-      <a id="btn-whatsapp" class="bouton bouton-whatsapp bouton-grand" target="_blank">💬 Partager WhatsApp</a>
+      <a id="btn-whatsapp" class="bouton bouton-whatsapp bouton-grand" target="_blank">📱 Envoyer par WhatsApp</a>
     </div>
   </div>
 </template>

@@ -1,14 +1,21 @@
-/* style.css — Design mobile-first, épuré, gros boutons, couleurs de confiance */
+/* style.css — Design mobile-first, identité ReçuSûr (v2.0) */
+
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
 
 :root {
-  --vert-principal: #0a7d3e;
-  --vert-fonce: #06592c;
+  --vert-principal: #1a7a3a;   /* marque / en-tête */
+  --vert-fonce: #125226;
   --vert-clair: #e6f5ec;
-  --bleu-confiance: #0d6efd;
+  --vert-cta: #22c55e;         /* bouton principal (CTA) */
+  --vert-cta-fonce: #16a34a;
+  --orange: #f59e0b;           /* secondaire / accent */
+  --bleu-confiance: #3b82f6;   /* alertes / infos / stat "ventes du jour" */
+  --violet: #8b5cf6;           /* stat "ventes totales" */
+  --gris-zero: #94a3b8;        /* valeurs à 0 */
   --blanc: #ffffff;
-  --gris-fond: #f4f6f5;
-  --gris-texte: #333333;
-  --gris-bordure: #dfe3e1;
+  --gris-fond: #f8fafc;
+  --gris-texte: #1e293b;
+  --gris-bordure: #e2e8f0;
   --rouge-erreur: #c0392b;
   --whatsapp: #25d366;
   --rayon: 12px;
@@ -19,9 +26,14 @@ html[data-theme="sombre"] {
   --vert-principal: #1db866;
   --vert-fonce: #14814a;
   --vert-clair: #12331f;
-  --bleu-confiance: #4d94ff;
+  --vert-cta: #22c55e;
+  --vert-cta-fonce: #16a34a;
+  --orange: #fbbf24;
+  --bleu-confiance: #60a5fa;
+  --violet: #a78bfa;
+  --gris-zero: #6b7280;
   --blanc: #1e2422;
-  --gris-fond: #121614;
+  --gris-fond: #0f1512;
   --gris-texte: #e9ece9;
   --gris-bordure: #3a423e;
   --rouge-erreur: #ff6b5b;
@@ -38,7 +50,7 @@ html[data-theme="sombre"] .ticket { background: #f4f6f5; color: #222; } /* le ti
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
   background: var(--gris-fond);
   color: var(--gris-texte);
   font-size: 16px;
@@ -111,9 +123,10 @@ main { max-width: 640px; margin: 0 auto; padding: 16px; padding-bottom: 100px; }
   align-items: center;
   justify-content: center;
   gap: 8px;
+  min-height: 44px;
 }
-.bouton-principal { background: var(--vert-principal); color: var(--blanc); }
-.bouton-principal:active { background: var(--vert-fonce); }
+.bouton-principal { background: var(--vert-cta); color: var(--blanc); }
+.bouton-principal:active { background: var(--vert-cta-fonce); }
 .bouton-secondaire { background: var(--blanc); color: var(--vert-principal); border: 2px solid var(--vert-principal); }
 .bouton-grand { font-size: 18px; padding: 18px 22px; min-height: 56px; }
 .bouton-pleine-largeur { width: 100%; }
@@ -158,10 +171,16 @@ input:focus, select:focus { outline: none; border-color: var(--vert-principal); 
 /* ---- Dashboard ---- */
 .titre-page { color: var(--vert-fonce); }
 .titre-section { font-size: 16px; color: var(--vert-fonce); margin-top: 24px; }
-.grille-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-.carte-stat { text-align: center; }
-.stat-libelle { display: block; font-size: 12px; color: #777; margin-bottom: 6px; }
+.grille-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.carte-stat { text-align: center; padding: 16px 12px; }
+.stat-icone { display: block; font-size: 24px; margin-bottom: 6px; }
+.stat-libelle { display: block; font-size: 13px; color: #777; margin-bottom: 4px; }
 .stat-valeur { display: block; font-size: 22px; font-weight: 800; color: var(--vert-principal); }
+.stat-valeur.stat-zero { color: var(--gris-zero) !important; }
+.stat-bleu { color: var(--bleu-confiance); }
+.stat-vert { color: var(--vert-cta); }
+.stat-violet { color: var(--violet); }
+.stat-orange { color: var(--orange); }
 
 .liste-ventes { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
 .item-vente {
@@ -242,7 +261,6 @@ input:focus, select:focus { outline: none; border-color: var(--vert-principal); 
 
 /* ---- Responsive tablette / desktop ---- */
 @media (min-width: 700px) {
-  .grille-stats { grid-template-columns: repeat(3, 1fr); }
   .filtres { flex-wrap: nowrap; }
   .filtres button { width: auto; }
 }
@@ -402,3 +420,160 @@ input:focus, select:focus { outline: none; border-color: var(--vert-principal); 
   animation: toast-rebond 0.5s ease 0.2s;
 }
 
+/* ==================================================================
+   Logo (icône ticket + coche)
+   ================================================================== */
+.logo { display: flex; align-items: center; gap: 8px; font-size: 20px; font-weight: 800; }
+.logo-icone { width: 28px; height: 28px; flex-shrink: 0; }
+
+/* ==================================================================
+   Message de bienvenue + rappel de valeur
+   ================================================================== */
+.rappel-valeur {
+  background: var(--vert-clair);
+  color: var(--vert-fonce);
+  border-radius: var(--rayon);
+  padding: 14px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 24px;
+  text-align: center;
+}
+.compteur-certifies {
+  text-align: center;
+  font-size: 13px;
+  color: #778;
+  margin-top: 10px;
+}
+
+/* ==================================================================
+   Mini graphique en barres (7 derniers jours)
+   ================================================================== */
+.graphique-carte { padding: 16px; }
+.graphique-titre { font-size: 13px; color: #778; margin: 0 0 12px; font-weight: 700; }
+.graphique-barres {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 90px;
+}
+.graphique-colonne { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
+.graphique-barre { width: 100%; max-width: 28px; background: var(--vert-cta); border-radius: 4px 4px 0 0; min-height: 3px; transition: height 0.6s ease; }
+.graphique-jour { font-size: 10px; color: #99a; }
+
+/* ==================================================================
+   Badge de confiance (ticket)
+   ================================================================== */
+.badge-certifie {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--vert-clair);
+  color: var(--vert-fonce);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 20px;
+  margin: 8px auto 0;
+}
+.ticket-message-client { font-size: 12px; text-align: center; color: #555; margin: 8px 0; }
+
+/* ==================================================================
+   Historique — filtres rapides + statut + export
+   ================================================================== */
+.filtres-rapides { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.filtre-rapide {
+  background: var(--blanc);
+  border: 2px solid var(--gris-bordure);
+  color: var(--gris-texte);
+  border-radius: 20px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.filtre-rapide.actif { background: var(--vert-principal); border-color: var(--vert-principal); color: var(--blanc); }
+.bouton-export {
+  background: var(--orange);
+  color: var(--blanc);
+  border: none;
+  border-radius: var(--rayon);
+  padding: 12px 16px;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 12px;
+}
+
+/* ==================================================================
+   Page de connexion — liens secondaires
+   ================================================================== */
+.lien-secondaire {
+  display: block;
+  text-align: center;
+  font-size: 13px;
+  color: var(--bleu-confiance);
+  text-decoration: none;
+  margin-top: 6px;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+.selecteur-langue {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 18px;
+}
+.selecteur-langue button {
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: #99a;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.selecteur-langue button.actif { color: var(--vert-principal); font-weight: 800; text-decoration: underline; }
+
+/* ==================================================================
+   Hero — témoignage, illustration, compteur, CTA
+   ================================================================== */
+.hero-illustration { font-size: 56px; margin-bottom: 8px; }
+.hero-temoignage {
+  max-width: 480px;
+  margin: 20px auto 0;
+  background: var(--blanc);
+  border-radius: var(--rayon);
+  padding: 16px 20px;
+  box-shadow: var(--ombre-carte);
+  font-style: italic;
+  color: #556;
+  font-size: 14px;
+}
+.hero-temoignage strong { display: block; font-style: normal; margin-top: 6px; color: var(--vert-fonce); font-size: 13px; }
+.hero-compteur {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--vert-clair);
+  color: var(--vert-fonce);
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-weight: 800;
+  font-size: 13px;
+  margin: 14px 0 4px;
+}
+.hero-cta {
+  max-width: 280px;
+  margin: 18px auto 0;
+}
+
+/* ==================================================================
+   Partage de l'application
+   ================================================================== */
+.bouton-partage-app {
+  width: 100%;
+  margin-top: 10px;
+  background: var(--bleu-confiance);
+  color: var(--blanc);
+}

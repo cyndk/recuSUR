@@ -28,6 +28,17 @@ app.use('/api/admin', adminRoutes);
 
 app.get('/api/sante', (req, res) => res.json({ statut: 'ok' }));
 
+// Statistique publique (nombre total de tickets générés), affichée sur la page d'accueil
+app.get('/api/statistiques/publiques', async (req, res) => {
+  try {
+    const { db } = require('./db');
+    const resultat = await db.execute('SELECT COUNT(*) AS total FROM ventes');
+    res.json({ total_tickets: Number(resultat.rows[0].total) });
+  } catch (e) {
+    res.json({ total_tickets: 0 });
+  }
+});
+
 initialiserSchema()
   .then(() => {
     app.listen(PORT, () => {

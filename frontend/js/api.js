@@ -29,9 +29,22 @@ const API = (() => {
     return requete('/auth/login', { method: 'POST', body: JSON.stringify(payload) });
   }
 
+  // ---- Statistiques publiques (page de connexion, sans authentification) ----
+  async function statistiquesPubliques() {
+    try {
+      const reponse = await fetch(window.location.origin + '/api/statistiques/publiques');
+      return await reponse.json();
+    } catch (e) {
+      return { total_tickets: null };
+    }
+  }
+
   // ---- Ventes ----
   function resumeDashboard() {
     return requete('/ventes/dashboard/resume');
+  }
+  function graphique7Jours() {
+    return requete('/ventes/dashboard/graphique');
   }
   function listerVentes(filtres = {}) {
     const params = new URLSearchParams(filtres).toString();
@@ -79,7 +92,7 @@ const API = (() => {
   }
 
   return {
-    inscription, connexion, resumeDashboard, listerVentes, creerVente,
-    synchroniserVentesEnAttente, token
+    inscription, connexion, resumeDashboard, graphique7Jours, listerVentes, creerVente,
+    synchroniserVentesEnAttente, statistiquesPubliques, token
   };
 })();

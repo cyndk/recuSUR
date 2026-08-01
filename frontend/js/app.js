@@ -25,8 +25,9 @@ const App = (() => {
     navConnecte.style.display = connecte ? 'flex' : 'none';
     document.getElementById('btn-theme-deconnecte').style.display = connecte ? 'none' : 'flex';
 
-    // Le bouton flottant "Nouvelle vente" n'est utile que sur Accueil et Historique
-    fabNouvelleVente.classList.toggle('cache', !(connecte && (route === 'dashboard' || route === 'historique')));
+    // Le bouton flottant "Nouvelle vente" reste accessible sur toutes les pages utiles
+    // (sauf la page de saisie elle-même, où il ferait doublon)
+    fabNouvelleVente.classList.toggle('cache', !(connecte && route !== 'nouvelle-vente'));
 
     if (!API.token() && route !== 'login') {
       zoneApp.innerHTML = '';
@@ -110,6 +111,41 @@ const App = (() => {
     setTimeout(() => toast.remove(), 2500);
   }
 
+  // ---------------- Son de validation (petit "ding", généré sans fichier externe) ----------------
+  function jouerSonValidation() {
+    try {
+      const Contexte = window.AudioContext || window.webkitAudioContext;
+      const contexte = new Contexte();
+      const oscillateur = contexte.createOscillator();
+      const volume = contexte.createGain();
+      oscillateur.type = 'sine';
+      oscillateur.frequency.setValueAtTime(880, contexte.currentTime);
+      oscillateur.frequency.exponentialRampToValueAtTime(1320, contexte.currentTime + 0.12);
+      volume.gain.setValueAtTime(0.15, contexte.currentTime);
+      volume.gain.exponentialRampToValueAtTime(0.001, contexte.currentTime + 0.35);
+      oscillateur.connect(volume);
+      volume.connect(contexte.destination);
+      oscillateur.start();
+      oscillateur.stop(contexte.currentTime + 0.35);
+    } catch (e) {
+      // Certains navigateurs bloquent l'audio avant une interaction : on ignore silencieusement
+    }
+  }
+
+  // ---------------- Effet "compteur" (0 → valeur finale) ----------------
+  function animerCompteur(element, valeurFinale, formateur = (v) => Math.round(v)) {
+    const duree = 700;
+    const depart = performance.now();
+    function etape(maintenant) {
+      const avancement = Math.min((maintenant - depart) / duree, 1);
+      const valeurActuelle = valeurFinale * (1 - Math.pow(1 - avancement, 3)); // easing "ease-out"
+      element.textContent = formateur(valeurActuelle);
+      if (avancement < 1) requestAnimationFrame(etape);
+      else element.textContent = formateur(valeurFinale);
+    }
+    requestAnimationFrame(etape);
+  }
+
   // ---------------- Authentification ----------------
   function brancherFormulairesAuth() {
     const onglets = zoneApp.querySelectorAll('.onglet');
@@ -155,6 +191,47 @@ const App = (() => {
         erreurEl.textContent = err.message;
       }
     });
+
+    // Bouton "Commencer gratuitement" : bascule directement sur l'onglet inscription
+    const btnCommencer = document.getElementById('btn-commencer-gratuitement');
+    if (btnCommencer) {
+      btnCommencer.addEventListener('click', () => {
+        zoneApp.querySelector('[data-onglet="inscription"]').click();
+        document.querySelector('.carte-auth').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
+
+    // "Mot de passe oublié ?" : le mot de passe se réinitialise via l'administrateur (voir espace admin)
+    const btnMdpOublie = document.getElementById('btn-mdp-oublie');
+    if (btnMdpOublie) {
+      btnMdpOublie.addEventListener('click', () => {
+        alert("Pour réinitialiser votre mot de passe, contactez l'administrateur de votre compte ReçuSûr : il peut vous générer un nouveau mot de passe depuis l'espace d'administration.");
+      });
+    }
+
+    // Sélecteur de langue (l'anglais arrive prochainement)
+    const boutonsLangue = zoneApp.querySelectorAll('.selecteur-langue button');
+    boutonsLangue.forEach(bouton => {
+      bouton.addEventListener('click', () => {
+        if (bouton.dataset.langue === 'en') {
+          afficherToast("English version coming soon!", '🌍');
+          return;
+        }
+        boutonsLangue.forEach(b => b.classList.remove('actif'));
+        bouton.classList.add('actif');
+      });
+    });
+
+    chargerCompteurPublic();
+  }
+
+  async function chargerCompteurPublic() {
+    const zone = document.getElementById('hero-compteur');
+    if (!zone) return;
+    const { total_tickets } = await API.statistiquesPubliques();
+    if (typeof total_tickets === 'number' && total_tickets > 0) {
+      zone.textContent = `🔒 Déjà ${total_tickets.toLocaleString('fr-FR')} tickets certifiés générés`;
+    }
   }
 
   function connecter({ token, commercant: c }, estNouveauCompte = false) {
@@ -228,22 +305,80 @@ const App = (() => {
   // ---------------- Dashboard ----------------
   async function chargerDashboard() {
     document.getElementById('nom-commercant').textContent = commercant ? commercant.nom_entreprise : '';
+    brancherPartageApp();
     try {
       const resume = await API.resumeDashboard();
-      document.getElementById('stat-nombre-ventes').textContent = resume.nombre_ventes_jour;
-      document.getElementById('stat-chiffre-affaires').textContent = Ticket.formaterMontant(resume.chiffre_affaires_jour);
-      document.getElementById('stat-total-cumule').textContent = Ticket.formaterMontant(resume.chiffre_affaires_total);
+
+      definirStat('stat-nombre-ventes', resume.nombre_ventes_jour, (v) => Math.round(v).toString());
+      definirStat('stat-chiffre-affaires', resume.chiffre_affaires_jour, Ticket.formaterMontant);
+      definirStat('stat-ventes-totales', resume.nombre_ventes_total, (v) => Math.round(v).toString());
+      definirStat('stat-total-cumule', resume.chiffre_affaires_total, Ticket.formaterMontant);
+
+      document.getElementById('compteur-certifies').textContent =
+        `🔒 ${resume.nombre_ventes_total.toLocaleString('fr-FR')} ticket${resume.nombre_ventes_total > 1 ? 's' : ''} certifié${resume.nombre_ventes_total > 1 ? 's' : ''} généré${resume.nombre_ventes_total > 1 ? 's' : ''}`;
+
       afficherListeVentes('liste-dernieres-ventes', resume.dernieres_ventes);
+      chargerGraphique7Jours();
     } catch (e) {
       // Hors-ligne : on affiche les ventes en cache local + celles en attente
       const cache = await DBOffline.listerVentesEnCache();
       const enAttente = await DBOffline.listerVentesEnAttente();
-      document.getElementById('stat-nombre-ventes').textContent = '—';
-      document.getElementById('stat-chiffre-affaires').textContent = '—';
-      document.getElementById('stat-total-cumule').textContent = '—';
+      ['stat-nombre-ventes', 'stat-chiffre-affaires', 'stat-ventes-totales', 'stat-total-cumule'].forEach(id => {
+        document.getElementById(id).textContent = '—';
+      });
       const combinees = [...enAttente.map(v => ({ ...v, numero_ticket: 'EN ATTENTE', date_heure: new Date().toISOString() })), ...cache]
         .slice(0, 5);
       afficherListeVentes('liste-dernieres-ventes', combinees);
+      document.getElementById('graphique-barres').innerHTML = '<p style="font-size:12px;color:#999;text-align:center;width:100%;">Disponible une fois reconnecté</p>';
+    }
+  }
+
+  function brancherPartageApp() {
+    const bouton = document.getElementById('btn-partager-app');
+    if (!bouton) return;
+    bouton.addEventListener('click', async () => {
+      const donneesPartage = {
+        title: 'ReçuSûr',
+        text: "ReçuSûr — générez des tickets et factures fiables pour vos ventes, même sans internet.",
+        url: window.location.origin
+      };
+      if (navigator.share) {
+        try { await navigator.share(donneesPartage); } catch (e) { /* partage annulé par l'utilisateur */ }
+      } else {
+        await navigator.clipboard.writeText(donneesPartage.url).catch(() => {});
+        afficherToast("Lien copié ! Partagez-le à vos contacts", '📤');
+      }
+    });
+  }
+
+  function definirStat(id, valeur, formateur) {
+    const element = document.getElementById(id);
+    element.classList.toggle('stat-zero', valeur === 0);
+    animerCompteur(element, valeur, formateur);
+  }
+
+  async function chargerGraphique7Jours() {
+    const conteneur = document.getElementById('graphique-barres');
+    if (!conteneur) return;
+    try {
+      const { jours } = await API.graphique7Jours();
+      const maxNombre = Math.max(1, ...jours.map(j => j.nombre));
+      const nomsJours = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+
+      conteneur.innerHTML = '';
+      jours.forEach(j => {
+        const dateJour = new Date(j.jour + 'T00:00:00');
+        const colonne = document.createElement('div');
+        colonne.className = 'graphique-colonne';
+        colonne.title = `${j.nombre} vente(s) — ${Ticket.formaterMontant(j.montant)}`;
+        colonne.innerHTML = `
+          <div class="graphique-barre" style="height:${Math.max(3, (j.nombre / maxNombre) * 100)}%;"></div>
+          <span class="graphique-jour">${nomsJours[dateJour.getDay()]}</span>
+        `;
+        conteneur.appendChild(colonne);
+      });
+    } catch (e) {
+      conteneur.innerHTML = '<p style="font-size:12px;color:#999;text-align:center;width:100%;">Graphique indisponible</p>';
     }
   }
 
@@ -349,6 +484,7 @@ const App = (() => {
         const resultat = await API.creerVente(payload);
         derniereVenteAffichee = resultat.vente;
         derniereVenteVientDetreCreee = true;
+        jouerSonValidation();
         if (resultat.horsLigne) {
           afficherToast("Enregistrée hors-ligne — sera synchronisée automatiquement", '📴');
         } else {
@@ -363,10 +499,35 @@ const App = (() => {
 
   // ---------------- Historique ----------------
   function brancherHistorique() {
-    document.getElementById('btn-filtrer').addEventListener('click', chargerHistorique);
+    document.getElementById('btn-filtrer').addEventListener('click', () => {
+      document.querySelectorAll('.filtre-rapide').forEach(b => b.classList.remove('actif'));
+      chargerHistorique();
+    });
+
+    document.querySelectorAll('.filtre-rapide').forEach(bouton => {
+      bouton.addEventListener('click', () => {
+        document.querySelectorAll('.filtre-rapide').forEach(b => b.classList.remove('actif'));
+        bouton.classList.add('actif');
+
+        const champDate = document.getElementById('filtre-date');
+        const aujourdHui = new Date();
+        champDate.value = '';
+
+        if (bouton.dataset.periode === 'aujourdhui') {
+          champDate.value = aujourdHui.toISOString().slice(0, 10);
+        }
+        // "Cette semaine" et "Ce mois" utilisent une recherche sans filtre de date précis
+        // (le filtre serveur actuel compare une date exacte) : on charge tout puis on affine côté client.
+        chargerHistorique(bouton.dataset.periode);
+      });
+    });
+
+    document.getElementById('btn-exporter').addEventListener('click', exporterHistoriqueCsv);
   }
 
-  async function chargerHistorique() {
+  let dernieresVentesHistorique = [];
+
+  async function chargerHistorique(periode) {
     const filtres = {
       date: document.getElementById('filtre-date').value || undefined,
       client: document.getElementById('filtre-client').value || undefined,
@@ -375,13 +536,62 @@ const App = (() => {
     Object.keys(filtres).forEach(k => filtres[k] === undefined && delete filtres[k]);
 
     try {
-      const { ventes } = await API.listerVentes(filtres);
+      let { ventes } = await API.listerVentes(filtres);
+      ventes = filtrerParPeriode(ventes, periode);
       await DBOffline.mettreEnCacheVentes(ventes);
+      dernieresVentesHistorique = ventes;
       afficherListeVentes('liste-historique', ventes);
     } catch (e) {
-      const cache = await DBOffline.listerVentesEnCache();
+      let cache = await DBOffline.listerVentesEnCache();
+      cache = filtrerParPeriode(cache, periode);
+      dernieresVentesHistorique = cache;
       afficherListeVentes('liste-historique', cache);
     }
+  }
+
+  function filtrerParPeriode(ventes, periode) {
+    if (!periode || periode === 'tout' || periode === 'aujourdhui') return ventes; // "aujourdhui" déjà filtré côté serveur via la date
+    const maintenant = new Date();
+    return ventes.filter(v => {
+      const dateVente = new Date(v.date_heure);
+      if (periode === 'semaine') {
+        const debutSemaine = new Date(maintenant);
+        debutSemaine.setDate(maintenant.getDate() - maintenant.getDay());
+        debutSemaine.setHours(0, 0, 0, 0);
+        return dateVente >= debutSemaine;
+      }
+      if (periode === 'mois') {
+        return dateVente.getMonth() === maintenant.getMonth() && dateVente.getFullYear() === maintenant.getFullYear();
+      }
+      return true;
+    });
+  }
+
+  function exporterHistoriqueCsv() {
+    if (!dernieresVentesHistorique.length) {
+      afficherToast("Aucune vente à exporter", '⚠️');
+      return;
+    }
+    const entetes = ['Date', 'N° Ticket', 'Client', 'Téléphone', 'Total (FCFA)', 'Moyen de paiement', 'N° Transaction'];
+    const lignes = dernieresVentesHistorique.map(v => [
+      new Date(v.date_heure).toLocaleString('fr-FR'),
+      v.numero_ticket,
+      v.client_nom,
+      v.client_telephone || '',
+      v.total,
+      v.moyen_paiement,
+      v.numero_transaction || ''
+    ]);
+    const csv = [entetes, ...lignes]
+      .map(ligne => ligne.map(champ => `"${String(champ).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const lien = document.createElement('a');
+    lien.href = URL.createObjectURL(blob);
+    lien.download = `recu-sur-historique-${new Date().toISOString().slice(0, 10)}.csv`;
+    lien.click();
+    afficherToast("Export CSV téléchargé");
   }
 
   // ---------------- Ticket ----------------

@@ -126,6 +126,39 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
+// GET /api/ventes/dashboard/graphique — Nombre de ventes par jour sur les 7 derniers jours
+router.get('/dashboard/graphique', requireAuth, async (req, res) => {
+  try {
+    const resultat = await db.execute({
+      sql: `SELECT date(date_heure) AS jour, COUNT(*) AS nombre, COALESCE(SUM(total),0) AS montant
+            FROM ventes
+            WHERE commercant_id = ? AND date(date_heure) >= date('now', '-6 days')
+            GROUP BY date(date_heure)`,
+      args: [req.commercantId]
+    });
+
+    const parJour = {};
+    resultat.rows.forEach(r => { parJour[r.jour] = { nombre: Number(r.nombre), montant: Number(r.montant) }; });
+
+    const jours = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const cle = d.toISOString().slice(0, 10);
+      jours.push({
+        jour: cle,
+        nombre: parJour[cle]?.nombre || 0,
+        montant: parJour[cle]?.montant || 0
+      });
+    }
+
+    res.json({ jours });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ erreur: "Erreur serveur." });
+  }
+});
+
 // GET /api/ventes/dashboard/resume — Statistiques du jour + total cumulé depuis le début
 router.get('/dashboard/resume', requireAuth, async (req, res) => {
   try {
